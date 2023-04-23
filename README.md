@@ -17,7 +17,8 @@ You can inspect the entity relationship diagram and example data below.
 
 Entity Relationship Diagram
 
-![image](https://user-images.githubusercontent.com/96152380/233867890-f6e325b2-4aed-430c-bf05-9b10afa6e1fb.png)
+![image](https://user-images.githubusercontent.com/96152380/233868101-8a140f3f-8f63-4e2a-9155-787eaab211c9.png)
+
 
 Each of the following case study questions can be answered using a single SQL statement:
 
