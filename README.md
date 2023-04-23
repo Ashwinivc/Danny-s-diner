@@ -18,21 +18,35 @@ You can inspect the entity relationship diagram and example data below.
 Entity Relationship Diagram
 
 ![image](https://user-images.githubusercontent.com/96152380/233867890-f6e325b2-4aed-430c-bf05-9b10afa6e1fb.png)
+
 Each of the following case study questions can be answered using a single SQL statement:
 
 What is the total amount each customer spent at the restaurant?
+
 How many days has each customer visited the restaurant?
+
 What was the first item from the menu purchased by each customer?
+
 What is the most purchased item on the menu and how many times was it purchased by all customers?
+
 Which item was the most popular for each customer?
+
 Which item was purchased first by the customer after they became a member?
+
 Which item was purchased just before the customer became a member?
+
 What is the total items and amount spent for each member before they became a member?
+
 If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+
 In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+
 Bonus Questions
+
 Join All The Things
+
 The following questions are related creating basic data tables that Danny and his team can use to quickly derive insights without needing to join the underlying tables using SQL.
+
 customer_id	order_date	product_name	price	member
 A	2021-01-01	curry	15	N
 A	2021-01-01	sushi	10	N
@@ -49,7 +63,9 @@ B	2021-02-01	ramen	12	Y
 C	2021-01-01	ramen	12	N
 C	2021-01-01	ramen	12	N
 C	2021-01-07	ramen	12	N
+
 Rank All The Things
+
 Danny also requires further information about the ranking of customer products, but he purposely does not need the ranking for non-member purchases so he expects null ranking values for the records when customers are not yet part of the loyalty program.
 
 customer_id	order_date	product_name	price	member	ranking
