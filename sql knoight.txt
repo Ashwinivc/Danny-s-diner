@@ -1,0 +1,247 @@
+
+
+
+Dannys dinner Case Study #1
+
+## Q1 Total spent by each customer at the Restaurant 
+
+
+select s.customer_id,sum(m.price)
+from dannys_diner.sales s join dannys_diner.menu m
+on s.product_id = m.product_id
+group by s.customer_id
+ order by s.customer_id
+
+## Q2 Total times each customer visited the restaurant
+
+
+select customer_id,count(distinct(order_date)) as customervisit
+from dannys_diner.sales
+group by customer_id
+
+## Q3 what was the first item ordered by each customer on the menu?
+
+With Rank as
+(
+Select S.customer_id, 
+       M.product_name, 
+       S.order_date,
+       DENSE_RANK() OVER (PARTITION BY S.Customer_ID Order by S.order_date) as rank
+From dannys_diner. Menu m
+join dannys_diner. Sales s
+On m.product_id = s.product_id
+group by S.customer_id, M.product_name,S.order_date
+)
+Select Customer_id, product_name
+From Rank
+Where rank = 1
+
+## Q4 what is the most purchased item on the menu by all customers ?
+
+select  m.product_name,count(s.product_id)
+from dannys_diner.menu m join
+dannys_diner.sales s
+on m.product_id = s.product_id
+group by m.product_name
+order by count(s.product_id) desc
+limit 1;
+
+## Q5 what is the most purchased item on the menu by each  customer ?
+
+With Rank as
+(
+select s.customer_id,m.product_name ,count(s.product_id),
+dense_rank() over (partition by s.customer_id order by count(s.product_id) desc) as rank
+from dannys_diner.menu m join
+dannys_diner.sales s
+on m.product_id = s.product_id
+group by s.customer_id,m.product_name
+)
+ select customer_id,product_name,count
+ from Rank
+where rank = 1 
+
+##Q6 what is the first item purchased by customer after becoming a member?
+
+ with Rank as
+  (
+  select s.customer_id,s.order_date,s.product_id,mem.join_date,dense_rank() over (partition by s.customer_id order by s.order_date ) as rank
+  from dannys_diner.sales s join dannys_diner.members mem 
+  on s.customer_id = mem.customer_id
+  where s.order_date >= mem.join_date
+  group by s.customer_id,s.order_date, s.product_id,mem.join_date
+    )
+    select R.customer_id,R.join_date,R.order_date,m.product_name
+    from Rank R join Dannys_diner.menu M
+    on R.product_id = M.product_id
+    where rank =1
+    order by R.customer_id
+
+## Q7 what is the last item ordered by the customer before becoming memeber?
+
+with Rank as
+  (
+  select s.customer_id,s.order_date,s.product_id,mem.join_date,dense_rank() over (partition by s.customer_id order by s.order_date desc) as rank
+  from dannys_diner.sales s join dannys_diner.members mem 
+  on s.customer_id = mem.customer_id
+  where s.order_date < mem.join_date
+  group by s.customer_id,s.order_date, s.product_id,mem.join_date
+    )
+    select R.customer_id,R.join_date,R.order_date,m.product_name
+    from Rank R join Dannys_diner.menu M
+    on R.product_id = M.product_id
+    where rank =1
+    order by R.customer_id
+    
+
+
+## Q8 What is the total items and amount spent for each member before they became a member?
+with Rank as
+ (
+  select s.customer_id,s.order_date,s.product_id,mem.join_date,dense_rank() over (partition by s.customer_id order by s.order_date desc) as rank
+  from dannys_diner.sales s join dannys_diner.members mem 
+  on s.customer_id = mem.customer_id
+  where s.order_date < mem.join_date
+  group by s.customer_id,s.order_date, s.product_id,mem.join_date
+   )
+    
+  select R.customer_id,sum(M.price) as sales,count(M.product_id) as items
+    from Rank R join Dannys_diner.menu M
+    on R.product_id = M.product_id
+    group by R.Customer_id
+   order by R.customer_id
+
+customer_id	sales	       items
+A	         25	          2
+B	         40	          3
+
+##Q9 If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+
+ WITH CustomerPoints AS (
+  SELECT 
+    s.customer_id,
+    CASE 
+      WHEN s.customer_id IN (SELECT customer_id FROM dannys_diner.members) AND mn.product_name = 'sushi' THEN mn.price*20
+      WHEN s.customer_id IN (SELECT customer_id FROM dannys_diner.members) AND mn.product_name != 'sushi' THEN mn.price*10 
+    ELSE 0 END AS points
+  FROM dannys_diner.menu mn 
+  JOIN dannys_diner.sales s
+    ON mn.product_id = s.product_id
+)
+
+SELECT 
+  customer_id,
+  SUM(points) AS total_points
+FROM CustomerPoints
+GROUP BY customer_id;
+
+##Q10
+
+WITH programDates AS (
+  SELECT 
+    customer_id, 
+    join_date,
+    DATEADD(day,6, join_date) AS valid_date, 
+    EOMONTH('2021-01-01') AS last_date
+  FROM dannys_diner.members
+)
+
+SELECT 
+  p.customer_id,
+  SUM(CASE 
+      	WHEN s.order_date BETWEEN p.join_date AND p.valid_date THEN m.price*20
+      	WHEN m.product_name = 'sushi' THEN m.price*20
+      ELSE m.price*10 END) AS total_points
+FROM dannys_diner.sales s
+JOIN programDates p 
+  ON s.customer_id = p.customer_id
+JOIN dannys_diner.menu m 
+  ON s.product_id = m.product_id
+WHERE s.order_date <= last_date
+GROUP BY p.customer_id;
+
+Bonus Question :Join All the things
+
+    select s.customer_id,s.order_date,m.product_name,m.price,
+    case 
+    when s.order_date >= mem.join_date then 'yes'
+    else 'No'
+    end as member
+    from dannys_diner.sales s 
+    join dannys_diner.menu m
+    on s.product_id = m.product_id
+    left join dannys_diner.members mem
+    on s.customer_id = mem.customer_id;
+
+
+
+| customer_id | order_date               | product_name | price | member |
+| ----------- | ------------------------ | ------------ | ----- | ------ |
+| A           | 2021-01-07T00:00:00.000Z | curry        | 15    | yes    |
+| A           | 2021-01-11T00:00:00.000Z | ramen        | 12    | yes    |
+| A           | 2021-01-11T00:00:00.000Z | ramen        | 12    | yes    |
+| A           | 2021-01-10T00:00:00.000Z | ramen        | 12    | yes    |
+| A           | 2021Joi-01-01T00:00:00.000Z | sushi        | 10    | No     |
+| A           | 2021-01-01T00:00:00.000Z | curry        | 15    | No     |
+| B           | 2021-01-04T00:00:00.000Z | sushi        | 10    | No     |
+| B           | 2021-01-11T00:00:00.000Z | sushi        | 10    | yes    |
+| B           | 2021-01-01T00:00:00.000Z | curry        | 15    | No     |
+| B           | 2021-01-02T00:00:00.000Z | curry        | 15    | No     |
+| B           | 2021-01-16T00:00:00.000Z | ramen        | 12    | yes    |
+| B           | 2021-02-01T00:00:00.000Z | ramen        | 12    | yes    |
+| C           | 2021-01-01T00:00:00.000Z | ramen        | 12    | No     |
+| C           | 2021-01-01T00:00:00.000Z | ramen        | 12    | No     |
+| C           | 2021-01-07T00:00:00.000Z | ramen        | 12    | No     |
+
+--
+--Bonus question Ranking
+
+
+    with customer_status as
+       (
+         select s.customer_id,s.order_date,m.product_name,m.price,
+       case 
+        when s.order_date >= mem.join_date then 'yes'
+        else 'No'
+        end as member
+        from dannys_diner.sales s 
+        join dannys_diner.menu m
+        on s.product_id = m.product_id
+        left join dannys_diner.members mem
+         on s.customer_id = mem.customer_id
+         )
+         
+        select * , case when member = 'yes' 
+        then dense_rank () over(partition by customer_id,member  order by order_date)
+      else null
+      end as ranking
+        from customer_status;
+
+| customer_id | order_date               | product_name | price | member | ranking |
+| ----------- | ------------------------ | ------------ | ----- | ------ | ------- |
+| A           | 2021-01-01T00:00:00.000Z | sushi        | 10    | No     |         |
+| A           | 2021-01-01T00:00:00.000Z | curry        | 15    | No     |         |
+| A           | 2021-01-07T00:00:00.000Z | curry        | 15    | yes    | 1       |
+| A           | 2021-01-10T00:00:00.000Z | ramen        | 12    | yes    | 2       |
+| A           | 2021-01-11T00:00:00.000Z | ramen        | 12    | yes    | 3       |
+| A           | 2021-01-11T00:00:00.000Z | ramen        | 12    | yes    | 3       |
+| B           | 2021-01-01T00:00:00.000Z | curry        | 15    | No     |         |
+| B           | 2021-01-02T00:00:00.000Z | curry        | 15    | No     |         |
+| B           | 2021-01-04T00:00:00.000Z | sushi        | 10    | No     |         |
+| B           | 2021-01-11T00:00:00.000Z | sushi        | 10    | yes    | 1       |
+| B           | 2021-01-16T00:00:00.000Z | ramen        | 12    | yes    | 2       |
+| B           | 2021-02-01T00:00:00.000Z | ramen        | 12    | yes    | 3       |
+| C           | 2021-01-01T00:00:00.000Z | ramen        | 12    | No     |         |
+| C           | 2021-01-01T00:00:00.000Z | ramen        | 12    | No     |         |
+| C           | 2021-01-07T00:00:00.000Z | ramen        | 12    | No     |         |
+
+
+
+
+
+    
+
+
+
+
+
